@@ -1,4 +1,4 @@
-== Tool to identify periodic behaviour in network sessions ==
+# Tool to identify periodic behaviour in network sessions
 
 Malware and in particular botnets needs to send a heart-beat message to their control center to signal they are available.
 It is very difficult to identify such behaviour for two reasons:
@@ -6,7 +6,8 @@ It is very difficult to identify such behaviour for two reasons:
 * some events could be missing inentionally or non-intentionally (host is down, updating etc. etc.)
 This python component implements an algorithm from this [paper](https://en.wikipedia.org/wiki/Web_Ontology_Language).
 
-== Using the library ==
+## Using the library
+
 Please see the unit test example in test_weblogs for an example on real malware traffic.
 
 ```python
@@ -34,6 +35,7 @@ except AGCDException as e:
 
 
 
-== Requirements ==
+## Requirements
+
 * Python 3.6
 * requests
