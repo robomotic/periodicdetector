@@ -4,7 +4,7 @@ Malware and in particular botnets needs to send a heart-beat message to their co
 It is very difficult to identify such behaviour for two reasons:
 * the period is not always regular e.g. it might differ from a few msec or seconds
 * some events could be missing inentionally or non-intentionally (host is down, updating etc. etc.)
-This python component implements an algorithm from this [paper](https://en.wikipedia.org/wiki/Web_Ontology_Language).
+This python component implements an algorithm from this [paper](https://link.springer.com/article/10.1631/FITEE.1400345).
 
 ## Using the library
 
