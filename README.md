@@ -37,5 +37,5 @@ except AGCDException as e:
 
 ## Requirements
 
-* Python 3.6
+* Python 3.6 or Python2.7
 * requests
