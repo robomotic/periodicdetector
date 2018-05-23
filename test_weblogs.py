@@ -19,7 +19,13 @@ from agcd import AGCD,AGCDException
 import os,sys
 import requests
 import shutil
-from urllib.parse import urlsplit,urlunsplit
+import csv
+
+if sys.version_info[0] < 3:
+    from urlparse import urlsplit,urlunsplit
+    import codecs
+else:
+    from urllib.parse import urlsplit,urlunsplit
 
 
 def download_file(url):
@@ -50,72 +56,75 @@ class TestMalware(unittest.TestCase):
         self.assertTrue(os.path.exists(TestMalware.WEBLOG_FILE))
 
     def test_2_process_weblog(self):
-        import csv
 
+        if sys.version_info[0] >= 3:
+            with open(TestMalware.WEBLOG_FILE, 'r',encoding='utf-8',errors='ignore') as f:
 
-        with open(TestMalware.WEBLOG_FILE, 'r',encoding='utf-8',errors='ignore') as f:
+                http_data = []
+                filtered = [line.replace('\0', '') for line in f]
+                reader = csv.DictReader(filtered, delimiter='\t')
 
-            http_data = []
-            filtered = [line.replace('\0', '') for line in f]
-            reader = csv.DictReader(filtered, delimiter='\t')
+                try:
+                    for row in reader:
 
-            try:
-                for row in reader:
+                        info = {key: row[key] for key in row.keys() if key in ['timestamp','cs-method','cs-url','s-ip','c-ip']}
+                        # keep only second resolution
+                        info['timestamp'] = round(float(info['timestamp']))
+                        url_parse = urlsplit(info['cs-url'])
 
-                    info = {key: row[key] for key in row.keys() if key in ['timestamp','cs-method','cs-url','s-ip','c-ip']}
-                    # keep only second resolution
-                    info['timestamp'] = round(float(info['timestamp']))
-                    url_parse = urlsplit(info['cs-url'])
+                        info['cs-url-wo-query'] = urlunsplit((url_parse[0],url_parse[1],url_parse[2],None,None))
 
-                    info['cs-url-wo-query'] = urlunsplit((url_parse[0],url_parse[1],url_parse[2],None,None))
+                        if 'msg.video.qiyi.com' in row['cs-url']:
+                            http_data.append(info)
 
-                    if 'msg.video.qiyi.com' in row['cs-url']:
-                        http_data.append(info)
+                except UnicodeDecodeError as e:
+                    sys.exit('file %s, line %d: %s' % (TestMalware.WEBLOG_FILE, reader.line_num, e))
+                except csv.Error as e:
+                    sys.exit('file %s, line %d: %s' % (TestMalware.WEBLOG_FILE, reader.line_num, e))
 
-            except UnicodeDecodeError as e:
-                sys.exit('file %s, line %d: %s' % (TestMalware.WEBLOG_FILE, reader.line_num, e))
-            except csv.Error as e:
-                sys.exit('file %s, line %d: %s' % (TestMalware.WEBLOG_FILE, reader.line_num, e))
+                print("Known beacon http requests %d" % len(http_data))
 
-            print("Known beacon http requests %d" % len(http_data))
+                # aggregate time over source IP and URL
+                connection_events = {}
+                for http_request in http_data:
+                    key = (http_request['s-ip'],http_request['cs-url-wo-query'])
 
-            # aggregate time over source IP and URL
-            connection_events = {}
-            for http_request in http_data:
-                key = (http_request['s-ip'],http_request['cs-url-wo-query'])
+                    if key in connection_events:
+                        connection_events[key]+=[http_request['timestamp']]
+                    else:
+                        connection_events[key] = [http_request['timestamp']]
 
-                if key in connection_events:
-                    connection_events[key]+=[http_request['timestamp']]
-                else:
-                    connection_events[key] = [http_request['timestamp']]
+                total_found = 0
+                for (source,url) in connection_events.keys():
+                    event_seconds = connection_events[(source,url)]
+                    print("Beacon detection for source = {0} and url = {1}".format(source,url))
 
-            total_found = 0
-            for (source,url) in connection_events.keys():
-                event_seconds = connection_events[(source,url)]
-                print("Beacon detection for source = {0} and url = {1}".format(source,url))
+                    agcd = AGCD()
 
-                agcd = AGCD()
+                    agcd.period_histogram(event_seconds)
 
-                agcd.period_histogram(event_seconds)
+                    entropy = agcd.entropy_histogram()
 
-                entropy = agcd.entropy_histogram()
+                    if entropy > 4.0:
+                        period_estimate = agcd.period_max()
 
-                if entropy > 4.0:
-                    period_estimate = agcd.period_max()
-
-                    print("Maximum period found p = {0} ".format(period_estimate))
-                    print("Binary entropy = {0:.2f}".format(entropy))
-                    total_found+=1
-                else:
-                    print("Entropy too high")
-            print("Found in total {0} IP addresses beaconing".format(total_found))
-            self.assertEqual(13,total_found)
+                        print("Maximum period found p = {0} ".format(period_estimate))
+                        print("Binary entropy = {0:.2f}".format(entropy))
+                        total_found+=1
+                    else:
+                        print("Entropy too high")
+                print("Found in total {0} IP addresses beaconing".format(total_found))
+                self.assertEqual(13,total_found)
 
     def test_3_process_weblog(self):
-        import csv
 
-        with open(TestMalware.WEBLOG_FILE, 'r',encoding='utf-8',errors='ignore') as f:
+        if sys.version_info[0] >= 3:
+            f = open(TestMalware.WEBLOG_FILE, 'r',encoding='utf-8',errors='ignore')
 
+        else:
+            f = codecs.open(TestMalware.WEBLOG_FILE, 'r', errors = 'ignore')
+
+        if f:
             http_data = []
             filtered = [line.replace('\0', '') for line in f]
             reader = csv.DictReader(filtered, delimiter='\t')
@@ -125,7 +134,7 @@ class TestMalware(unittest.TestCase):
 
                     info = {key: row[key] for key in row.keys() if key in ['timestamp','cs-method','cs-url','s-ip','c-ip']}
                     # keep only second resolution
-                    info['timestamp'] = round(float(info['timestamp']))
+                    info['timestamp'] = int(round(float(info['timestamp'])))
                     url_parse = urlsplit(info['cs-url'])
 
                     info['cs-url-wo-query'] = urlunsplit((url_parse[0],url_parse[1],url_parse[2],None,None))

@@ -235,7 +235,7 @@ class TestPeriodic(unittest.TestCase):
 
         agcd.print_histogram()
 
-        self.assertGreater(1.9,entropy)
+        self.assertLess(1.9,entropy)
 
 if __name__ == '__main__':
     unittest.main()

@@ -16,6 +16,13 @@ __status__ = "Production"
 import math
 import itertools
 import random
+import sys
+
+if sys.version_info[0] < 3:
+    from fractions import gcd
+else:
+    from math import gcd
+
 
 class AGCDException(Exception):
     pass
@@ -28,7 +35,7 @@ class AGCD(object):
 
     def make_noise_interval(self):
 
-        r_int = math.floor(self.r)
+        r_int = int(math.floor(self.r))
 
         if r_int <= 1 :
             return [0]
@@ -73,7 +80,7 @@ class AGCD(object):
                 for ri in self.r_int:
                     for rj in self.r_int:
 
-                        g = math.gcd(d[0] + ri, d[1] + rj)
+                        g = gcd(d[0] + ri, d[1] + rj)
 
                         if g >= self.tmin:
                             if g in self.occur:
@@ -92,7 +99,7 @@ class AGCD(object):
 
         total = 0.0
 
-        norm = sum(list(self.occur.values()))
+        norm = 1.0*sum(list(self.occur.values()))
 
         vals = [v / norm for v in list(self.occur.values())]
 
